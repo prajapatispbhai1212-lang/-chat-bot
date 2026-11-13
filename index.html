@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My AI Chatbot</title>
+<title>My OpenAI Chatbot</title>
 
 <style>
 * {
@@ -97,6 +97,7 @@ header button {
 
 input {
     flex: 1;
+    min-width: 0;
     padding: 15px;
     border: none;
     outline: none;
@@ -115,6 +116,7 @@ input {
 
 #send:disabled {
     opacity: .5;
+    cursor: not-allowed;
 }
 
 @media(max-width:600px) {
@@ -122,6 +124,7 @@ input {
         height: 100vh;
         border-radius: 0;
     }
+
     .message {
         max-width: 90%;
     }
@@ -134,20 +137,20 @@ input {
 <div class="container">
 
 <header>
-    <h2>🤖 My AI Assistant</h2>
+    <h2>🤖 My OpenAI Assistant</h2>
     <button onclick="clearChat()">New Chat</button>
 </header>
 
 <div id="chat">
-
     <div class="message bot">
         Hello! 👋
 
         Welcome to My AI Assistant.
 
+        Powered by OpenAI GPT.
+
         Ask me anything. I'm here to help!
     </div>
-
 </div>
 
 <div id="typing"></div>
@@ -171,7 +174,23 @@ input {
 
 <script>
 
-const API_URL = "/api/chat";
+// ==================================
+// OPENAI CONFIGURATION
+// ==================================
+
+// Add your OpenAI API key here
+// This direct browser method is for private testing only.
+
+const API_KEY = "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";
+
+const API_URL = "https://api.openai.com/v1/responses";
+
+// Model
+const MODEL = "gpt-6-luna";
+
+// ==================================
+// CHAT VARIABLES
+// ==================================
 
 let messages = [];
 
@@ -179,6 +198,10 @@ const chat = document.getElementById("chat");
 const input = document.getElementById("input");
 const typing = document.getElementById("typing");
 const send = document.getElementById("send");
+
+// ==================================
+// ADD MESSAGE
+// ==================================
 
 function addMessage(text, type) {
 
@@ -193,11 +216,26 @@ function addMessage(text, type) {
     chat.scrollTop = chat.scrollHeight;
 }
 
+// ==================================
+// GET OPENAI RESPONSE
+// ==================================
+
 async function sendMessage() {
 
     const text = input.value.trim();
 
     if (!text || send.disabled) return;
+
+    if (
+        API_KEY === "YOUR_OPENAI_API_KEY" ||
+        !API_KEY.trim()
+    ) {
+        addMessage(
+            "⚠️ Please add your OpenAI API key first.",
+            "bot"
+        );
+        return;
+    }
 
     addMessage(text, "user");
 
@@ -208,7 +246,7 @@ async function sendMessage() {
         content: text
     });
 
-    typing.textContent = "AI is thinking...";
+    typing.textContent = "🤖 GPT is thinking...";
 
     send.disabled = true;
 
@@ -219,30 +257,56 @@ async function sendMessage() {
             method: "POST",
 
             headers: {
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + API_KEY
             },
 
             body: JSON.stringify({
-                messages: messages
+
+                model: MODEL,
+
+                input: [
+                    {
+                        role: "system",
+                        content:
+                        "You are My AI Assistant. Give helpful, friendly, clear and accurate answers. Reply in the user's language."
+                    },
+                    ...messages.slice(-20)
+                ],
+
+                max_output_tokens: 2048
+
             })
 
         });
 
-        if (!response.ok) {
-            throw new Error("Server error");
-        }
-
         const data = await response.json();
 
-        if (typeof data.reply !== "string") {
-            throw new Error("Invalid response");
+        if (!response.ok) {
+
+            throw new Error(
+                data.error?.message || "OpenAI API error"
+            );
+
         }
 
-        addMessage(data.reply, "bot");
+        // Extract text from Responses API output
+
+        const reply = (data.output || [])
+            .flatMap(item => item.content || [])
+            .filter(item => item.type === "output_text")
+            .map(item => item.text)
+            .join("\n");
+
+        if (!reply) {
+            throw new Error("No response received from GPT.");
+        }
+
+        addMessage(reply, "bot");
 
         messages.push({
             role: "assistant",
-            content: data.reply
+            content: reply
         });
 
     } catch (error) {
@@ -250,9 +314,11 @@ async function sendMessage() {
         messages.pop();
 
         addMessage(
-            "⚠️ Unable to connect to AI. Please check your server connection.",
+            "⚠️ Error: " + error.message,
             "bot"
         );
+
+        console.error(error);
 
     } finally {
 
@@ -264,6 +330,10 @@ async function sendMessage() {
 
     }
 }
+
+// ==================================
+// NEW CHAT
+// ==================================
 
 function clearChat() {
 
@@ -278,6 +348,10 @@ function clearChat() {
 
 }
 
+// ==================================
+// ENTER KEY
+// ==================================
+
 input.addEventListener("keydown", function(e) {
 
     if (e.key === "Enter") {
@@ -285,6 +359,8 @@ input.addEventListener("keydown", function(e) {
     }
 
 });
+
+input.focus();
 
 </script>
 

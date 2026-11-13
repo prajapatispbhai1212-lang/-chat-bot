@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My OpenAI Chatbot</title>
+<title>My AI Assistant</title>
 
 <style>
 * {
@@ -137,7 +137,7 @@ input {
 <div class="container">
 
 <header>
-    <h2>🤖 My OpenAI Assistant</h2>
+    <h2>🤖 My AI Assistant</h2>
     <button onclick="clearChat()">New Chat</button>
 </header>
 
@@ -147,16 +147,15 @@ input {
 
         Welcome to My AI Assistant.
 
-        Powered by OpenAI GPT.
+        Powered by Groq AI.
 
-        Ask me anything. I'm here to help!
+        Ask me anything!
     </div>
 </div>
 
 <div id="typing"></div>
 
 <div class="input-area">
-
     <input
         id="input"
         type="text"
@@ -167,30 +166,23 @@ input {
     <button id="send" onclick="sendMessage()">
         Send ➤
     </button>
-
 </div>
 
 </div>
 
 <script>
 
-// ==================================
-// OPENAI CONFIGURATION
-// ==================================
-
-// Add your OpenAI API key here
-// This direct browser method is for private testing only.
+// GROQ API CONFIGURATION
 
 const API_KEY = "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";
 
-const API_URL = "https://api.openai.com/v1/responses";
+const API_URL =
+"https://api.groq.com/openai/v1/chat/completions";
 
-// Model
-const MODEL = "gpt-6-luna";
+// Available Groq model
+const MODEL = "openai/gpt-oss-120b";
 
-// ==================================
 // CHAT VARIABLES
-// ==================================
 
 let messages = [];
 
@@ -199,9 +191,7 @@ const input = document.getElementById("input");
 const typing = document.getElementById("typing");
 const send = document.getElementById("send");
 
-// ==================================
 // ADD MESSAGE
-// ==================================
 
 function addMessage(text, type) {
 
@@ -216,9 +206,7 @@ function addMessage(text, type) {
     chat.scrollTop = chat.scrollHeight;
 }
 
-// ==================================
-// GET OPENAI RESPONSE
-// ==================================
+// SEND MESSAGE
 
 async function sendMessage() {
 
@@ -226,14 +214,8 @@ async function sendMessage() {
 
     if (!text || send.disabled) return;
 
-    if (
-        API_KEY === "YOUR_OPENAI_API_KEY" ||
-        !API_KEY.trim()
-    ) {
-        addMessage(
-            "⚠️ Please add your OpenAI API key first.",
-            "bot"
-        );
+    if (API_KEY === "YOUR_GROQ_API_KEY") {
+        addMessage("Please add your Groq API key first.", "bot");
         return;
     }
 
@@ -246,7 +228,7 @@ async function sendMessage() {
         content: text
     });
 
-    typing.textContent = "🤖 GPT is thinking...";
+    typing.textContent = "🤖 AI is thinking...";
 
     send.disabled = true;
 
@@ -265,16 +247,18 @@ async function sendMessage() {
 
                 model: MODEL,
 
-                input: [
+                messages: [
                     {
                         role: "system",
                         content:
-                        "You are My AI Assistant. Give helpful, friendly, clear and accurate answers. Reply in the user's language."
+                        "You are My AI Assistant. Be helpful, friendly and accurate. Explain answers clearly and reply in the user's language."
                     },
                     ...messages.slice(-20)
                 ],
 
-                max_output_tokens: 2048
+                temperature: 0.7,
+
+                max_completion_tokens: 2048
 
             })
 
@@ -283,23 +267,16 @@ async function sendMessage() {
         const data = await response.json();
 
         if (!response.ok) {
-
             throw new Error(
-                data.error?.message || "OpenAI API error"
+                data.error?.message || "Groq API error"
             );
-
         }
 
-        // Extract text from Responses API output
+        const reply =
+            data.choices?.[0]?.message?.content;
 
-        const reply = (data.output || [])
-            .flatMap(item => item.content || [])
-            .filter(item => item.type === "output_text")
-            .map(item => item.text)
-            .join("\n");
-
-        if (!reply) {
-            throw new Error("No response received from GPT.");
+        if (typeof reply !== "string") {
+            throw new Error("Invalid AI response.");
         }
 
         addMessage(reply, "bot");
@@ -327,13 +304,10 @@ async function sendMessage() {
         send.disabled = false;
 
         input.focus();
-
     }
 }
 
-// ==================================
 // NEW CHAT
-// ==================================
 
 function clearChat() {
 
@@ -345,12 +319,9 @@ function clearChat() {
         "Hello! 👋 Welcome back. Ask me anything!",
         "bot"
     );
-
 }
 
-// ==================================
 // ENTER KEY
-// ==================================
 
 input.addEventListener("keydown", function(e) {
 
